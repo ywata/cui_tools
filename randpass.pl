@@ -122,10 +122,10 @@ splice(@random_sequence, $length); # splice is destructive operator
 my @conv;
 my $separator = "";
 if($opt_style eq "word"){
-    @conv = map {lc($_)} @random_sequence;
+    @conv = map {&toSpace($_)} (map {lc($_)} @random_sequence);
     $separator = ' ';
 }elsif($opt_style eq "Word"){
-    @conv = map {ucfirst($_)} @random_sequence;
+    @conv = map {&toSpace($_)} (map {ucfirst($_)} @random_sequence);
 }elsif($opt_style eq "alphanum"){
     @conv = @random_sequence;
 }elsif($opt_style eq "Alphanum"){
@@ -141,15 +141,9 @@ print "\n$pass\n\n";
 
 
 if($opt_practice == 1){
-    &interactive;
+    &practice($pass);
 }
 
-sub interactive{
-    my($func) = @_;
-    while(my $input = <STDIN>){
-	# currently not implemented.
-    }
-}
 
 # return number of words neccsary to full fill $entropy10 criteria.
 sub check_entropy{
@@ -203,6 +197,43 @@ sub jot{
     }
     return (split / /, $res);
 }
+
+sub toSpace{
+    my($word) = @_;
+    $word =~ tr/\_/ /;
+    return $word;
+}
+
+sub prompt{
+    my($pass, $opt) = @_;
+    if($opt eq 'SHOW'){
+	print "$pass>";
+    }else{
+	print ">";
+    }
+}
+
+sub getLine{
+    my $line = <>;
+    chomp$ line;
+    return $line;
+}
+
+sub practice{
+    my($pass) = @_;
+    my $level = 'SHOW';
+    do{
+	&prompt($pass, $level);
+	my $response = &getLine();
+	if($pass eq $response){
+	    $level = 'GOOD';
+	}else{
+	    $level = 'SHOW';
+	}
+    }while(1)
+}
+
+
 
 
 sub usage{
