@@ -59,6 +59,10 @@ my $debug = 0;
 my $BNC_ALL = "bnc_all_rank.txt";
 
 
+if(defined($ENV{'RNDPASS_DICTIONARY'})){
+    $opt_dictionary = $ENV{RNDPASS_DICTIONARY};
+}
+
 my $oldsignal = $SIG{__WARN__};
 $SIG{__WARN__} = sub {}; # drop it. GetOption raise warn if unknown option is provided.
 my $opt = GetOptions(
