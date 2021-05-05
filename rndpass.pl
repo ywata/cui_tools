@@ -54,10 +54,15 @@ my $opt_practice = 0;
 my $opt_style = "word";
 my $opt_entropy10 = 23;
 my $opt_dictionary = '/usr/share/dict/words';
+my $opt_show_pass = 0;
 my $debug = 0;
 
 my $BNC_ALL = "bnc_all_rank.txt";
 
+
+if(defined($ENV{'RNDPASS_DICTIONARY'})){
+    $opt_dictionary = $ENV{RNDPASS_DICTIONARY};
+}
 
 my $oldsignal = $SIG{__WARN__};
 $SIG{__WARN__} = sub {}; # drop it. GetOption raise warn if unknown option is provided.
@@ -68,11 +73,13 @@ my $opt = GetOptions(
     "practice" => \$opt_practice,
     "prepare=s" => \&prepare,
     "style=s" => \$opt_style,
+    "show" => sub {$opt_show_pass = 1},
     "debug" => \$debug
     );
 $SIG{__WARN__} = $oldsignal; # recover handler.
 
 if(!$opt){
+
     &usage("Unknown option");
 }
 
@@ -85,15 +92,16 @@ dictionary:$opt_dictionary
 EOF
 }
 
-my @dict = &read_dict($opt_dictionary);
 
 
 my @choice;
 my $jot_max;
 if($opt_style eq "word"){
+    my @dict = &read_dict($opt_dictionary);
     @choice = @dict;
     $jot_max = $MAX_WORDS;
 }elsif($opt_style eq "Word"){
+    my @dict = &read_dict($opt_dictionary);
     @choice = @dict;
     $jot_max = $MAX_WORDS;
 }elsif($opt_style eq "alphanum"){
@@ -101,6 +109,9 @@ if($opt_style eq "word"){
     $jot_max = $MAX_CHARS;    
 }elsif($opt_style eq "Alphanum"){
     @choice = @Alphanumeric;
+    $jot_max = $MAX_CHARS;    
+}elsif($opt_style eq "num"){
+    @choice = @numeric;
     $jot_max = $MAX_CHARS;    
 }else{
     &usage("option $opt_style");
@@ -130,6 +141,8 @@ if($opt_style eq "word"){
     @conv = @random_sequence;
 }elsif($opt_style eq "Alphanum"){
     @conv = @random_sequence;
+}elsif($opt_style eq "num"){
+    @conv = @random_sequence;
 }else{
     &usage("Unknown style $opt_style");
 }
@@ -137,7 +150,12 @@ if($opt_style eq "word"){
 my $pass = join($separator, @conv);
 
 printf "complexity:%.2f\nlength:%d\n", $ent10, length($pass);
-print "\n$pass\n\n";
+
+if($opt_show_pass){
+    print "\n$pass\n\n";
+}else{
+    &copyToPasteboard($pass);
+}
 
 
 if($opt_practice == 1){
@@ -172,13 +190,13 @@ sub generate_sequence{
 }
 
 sub read_dict{
-    my($DICT) = @_;
-    open(my $F, "$DICT") or die "$!:$DICT";
+    my($DICT)= @_;
+    open(my $F, "$DICT") or die "$!:$DICT. Consider to run prepare command.";
     my @DICT;
 
     while(my $word = <$F>){
 	$word =~ s/^\t//;
-	$word =~ s/(\t.+)//;	
+      	$word =~ s/(\t.+)//;	
 	$word =~ s/[\r\n]//g;
 	push @DICT, $word;
     }
@@ -233,7 +251,11 @@ sub practice{
     }while(1)
 }
 
-
+sub copyToPasteboard{
+    my($pass) = @_;
+    open(my $F, "| pbcopy") or die $!;
+    print $F $pass;
+}
 
 
 sub usage{
@@ -263,7 +285,7 @@ EOF
 # multiple file and cause biased results.
 sub prepare{
     my ($opt_name, $opt_value) = @_;
-    my $URL = qw(http://ucrel.lancs.ac.uk/bncfreq/lists/);
+    my $URL = qw(http://ucrel.lancs.ac.uk/bncfreq/lists);
     my $texts =<<"EOF";
 5_1_all_rank_noun.txt
 5_2_all_rank_verb.txt
@@ -279,10 +301,11 @@ EOF
     my @files = split(/\n/, $texts);
     my $script;
     foreach my $f (@files){
-	$script .= &download($opt_value, $URL, $f, $BNC_ALL) . "\nsleep 5\n";
+#	$script .= &download($opt_value, $URL, $f, $BNC_ALL) . "\nsleep 5\n";
     }
+    my $x = "x";
     $script .=<<"EOF";
-#perl -pe 's/^\t(\S+).+/$1/' $BNC_ALL |sort  | uniq > $BNC_ALL
+perl -pe 's/^\\t(\\S+).+/\$1/' $BNC_ALL$x | sort  | uniq > $BNC_ALL
 EOF
 
     print "$script\n";
